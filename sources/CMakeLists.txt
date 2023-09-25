@@ -20,5 +20,5 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/modules)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/modules/dbus)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/modules/intents)
 
-add_executable(main main.cpp modules/dbus/dbus_server.cpp modules/intents/intent_manager.cpp)
+add_executable(main main.cpp common/types.cpp modules/dbus/dbus_server.cpp modules/intents/intent_manager.cpp)
 target_link_libraries(main ${DBUS_LIBRARIES})

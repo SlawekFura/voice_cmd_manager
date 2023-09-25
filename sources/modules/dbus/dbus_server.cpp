@@ -60,10 +60,6 @@ int initialize_dbus_connection(DBusConnection** conn)
 
 int fetch_dbus_msg(DBusConnection* conn, DBusMessage* msg)
 {
-	DBusMessageIter args;
-    DBusPendingCall* pending;
-    char* sigvalue;
-
 	// non blocking read of the next available message
 	dbus_connection_read_write(conn, 0);
 	msg = dbus_connection_pop_message(conn);
@@ -72,22 +68,10 @@ int fetch_dbus_msg(DBusConnection* conn, DBusMessage* msg)
         return 0;
     }
 
-
-	std::cout << "Message not null - n" << std::endl;
-
 	// check if the message is a signal from the correct interface and with the correct name
 	if (dbus_message_is_signal(msg, msg_interface, msg_name))
     {
-		if (!dbus_message_iter_init(msg, &args))
-	  		fprintf(stderr, "Message has no arguments!\n");
-		else if (DBUS_TYPE_STRING != dbus_message_iter_get_arg_type(&args))
-	    	fprintf(stderr, "Argument is not string!\n");
-		else
-		{
-	    	dbus_message_iter_get_basic(&args, &sigvalue);
-            std::cout << "Received0: " << sigvalue << std::endl;
-            return 0;
-	  	}
+        return 0;
 	}
 	else
     {
@@ -95,6 +79,24 @@ int fetch_dbus_msg(DBusConnection* conn, DBusMessage* msg)
     }
 
     return -1;
+}
+
+std::string extract_string_from_msg(DBusMessage* msg)
+{
+	DBusMessageIter args;
+    char* sigvalue;
+
+	if (!dbus_message_iter_init(msg, &args))
+	  	fprintf(stderr, "Message has no arguments!\n");
+    else if (DBUS_TYPE_STRING != dbus_message_iter_get_arg_type(&args))
+    	fprintf(stderr, "Argument is not string!\n");
+    else
+    {
+    	dbus_message_iter_get_basic(&args, &sigvalue);
+        std::cout << "Received0: " << sigvalue << std::endl;
+        return std::string(sigvalue);
+    }
+    return {};
 }
 
 void disconnect_dbus(DBusConnection* conn)

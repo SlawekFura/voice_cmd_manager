@@ -9,7 +9,7 @@
 #include "dbus_server.h"
 #include "intent_manager.h"
 
-int main(char* argc, char** argv)
+int main(int argc, char** argv)
 {
 	DBusMessage* msg;
 	DBusMessageIter args;
@@ -24,18 +24,20 @@ int main(char* argc, char** argv)
     }
     if (conn == nullptr)
     {
-
         std::cout << "conn is nullptr!" << std::endl;
         return -1;
     }
     else
+    {
         std::cout << "conn is not nullptr" << std::endl;
+    }
 
 	while (true)
     {
         if (fetch_dbus_msg(conn, msg) == 0)
         {
-            intent = retrieve_intent_from_dbus_msg(msg);
+            std::string content = extract_string_from_msg(msg);
+            intent = match_intent(content);
         }
         usleep(100);
 	}

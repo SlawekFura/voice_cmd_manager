@@ -1,8 +1,10 @@
-#include <dbus/dbus.h>
+#include "intent_manager.h"
 
-#include "types.h"
-
-Intent retrieve_intent_from_dbus_msg(DBusMessage* msg)
+Intent match_intent(std::string msg_payload)
 {
+    if (intent_dbus_map.count(msg_payload) != 0)
+    {
+        return intent_dbus_map[msg_payload];
+    }
     return Intent::Intent_invalid;
 }

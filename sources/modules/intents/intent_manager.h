@@ -1,3 +1,5 @@
 #pragma once
 
-Intent retrieve_intent_from_dbus_msg (DBusMessage*);
+#include "types.h"
+
+Intent match_intent(std::string);
