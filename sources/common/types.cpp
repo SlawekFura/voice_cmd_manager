@@ -1,9 +1,4 @@
 #include "types.h"
+#include "major_fsm.h"
 
-std::map<std::string, Intent> intent_dbus_map =
-{
-    {"example", Intent::Intent_invalid},
-    {"hello", Intent::Intent_greetings},
-    {"goodbye", Intent::Intent_goodbye}
-};
-
+Event_map intent_event_map = event_mapping_init();

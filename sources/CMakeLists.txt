@@ -7,7 +7,6 @@ set(CMAKE_BUILD_TYPE Debug)
 set(COMMON_LIBS dl)
 set(MIC_LIBS pthread m)
 
-
 include(${CMAKE_SOURCE_DIR}/cmake_utils/FindDBus.cmake)
 
 # Use results of find_package() call.
@@ -19,6 +18,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/common)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/modules)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/modules/dbus)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/modules/intents)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/fsm/)
 
-add_executable(main main.cpp common/types.cpp modules/dbus/dbus_server.cpp modules/intents/intent_manager.cpp)
+add_executable(main
+               main.cpp
+               fsm/major_fsm.cpp
+               common/types.cpp
+               modules/dbus/dbus_server.cpp
+               modules/intents/intent_manager.cpp)
+               
 target_link_libraries(main ${DBUS_LIBRARIES})

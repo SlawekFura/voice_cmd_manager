@@ -2,7 +2,7 @@
 
 #include "types.h"
 
-int initialize_dbus_connection(DBusConnection**);
-int fetch_dbus_msg(DBusConnection*, DBusMessage*);
-void disconnect_dbus(DBusConnection*);
-std::string extract_string_from_msg(DBusMessage*);
+int initialize_dbus_connection();
+int fetch_dbus_msg();
+void disconnect_dbus();
+std::string&& extract_string_from_last_msg();

@@ -1,5 +1,6 @@
 #pragma once
 
 #include "types.h"
+#include "major_fsm.h"
 
-Intent match_intent(std::string);
+std::unique_ptr<EvtType>& dispatch_intent(std::string);

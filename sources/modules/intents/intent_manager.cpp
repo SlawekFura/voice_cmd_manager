@@ -1,10 +1,15 @@
-#include "intent_manager.h"
+#include <iostream>
 
-Intent match_intent(std::string msg_payload)
+#include "intent_manager.h"
+#include "major_fsm.h"
+
+std::unique_ptr<EvtType>& dispatch_intent(std::string msg_payload)
 {
-    if (intent_dbus_map.count(msg_payload) != 0)
+    if (intent_event_map.count(msg_payload) != 0)
     {
-        return intent_dbus_map[msg_payload];
+        return intent_event_map[msg_payload];
     }
-    return Intent::Intent_invalid;
+
+    std::cout << "message not recognized: " << msg_payload << std::endl;
+    return intent_event_map["null"];
 }
