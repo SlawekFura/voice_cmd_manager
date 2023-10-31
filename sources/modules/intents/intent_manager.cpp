@@ -11,5 +11,5 @@ std::unique_ptr<EvtType>& dispatch_intent(std::string msg_payload)
     }
 
     std::cout << "message not recognized: " << msg_payload << std::endl;
-    return intent_event_map["null"];
+    return intent_event_map["invalid"];
 }

@@ -25,7 +25,7 @@ using Event_map = std::map<std::string, std::unique_ptr<EvtType>>;
 static Event_map event_mapping_init()
 {
   Event_map local_map;
-  local_map["null"] = std::make_unique<EvtType>();
+  local_map["invalid"] = std::make_unique<EvtType>(invalid{});
   local_map["powitanie"] = std::make_unique<EvtType>(greetings{});
   local_map["pozegnanie"] = std::make_unique<EvtType>(goodbye{});
   local_map["stop"] = std::make_unique<EvtType>(stop{});

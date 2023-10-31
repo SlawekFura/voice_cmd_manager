@@ -40,8 +40,9 @@ int initialize_dbus_connection()
     }
     if (DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER != ret)
     {
-        return -1;
+        std::cout << "DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER error!" << std::endl;
         ::dbus_connection_unref(conn);
+        return -1;
     }
 
     // add a rule for which messages we want to see

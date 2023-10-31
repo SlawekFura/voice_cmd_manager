@@ -5,6 +5,8 @@
 #include <iostream>
 #include "boost/variant.hpp"
 
+#include "audio_mgr.h"
+
 namespace msm = boost::msm;
 namespace mpl = boost::mpl;
 struct initial_state;
@@ -15,6 +17,7 @@ struct event
 };
 
 // events
+struct invalid           : public event { virtual ~invalid(){};};
 struct start_music       : public event { virtual ~start_music(){};};
 struct greetings         : public event { virtual ~greetings(){};};
 struct stop              : public event { virtual ~stop(){};};
@@ -23,13 +26,15 @@ struct finished_music    : public event { virtual ~finished_music(){};};
 struct finished_farewell : public event { virtual ~finished_farewell(){};};
 
 // A typedef of boost::variant, put all event here
-using EvtType = boost::variant<start_music, greetings, stop, goodbye, finished_music, finished_farewell>;
+using EvtType = boost::variant<invalid, start_music, greetings, stop, goodbye, finished_music, finished_farewell>;
 
 struct common_fsm;
 typedef msm::back::state_machine<common_fsm> common_fsm_backend;
 
 struct common_fsm : public msm::front::state_machine_def<common_fsm>
 {
+    // common_fsm(Audio_Manager&& _audio_manager) : audio_manager(std::move(_audio_manager)){};
+
     struct Empty : public msm::front::state<>
     {
         // every (optional) entry/exit methods get the event passed.
@@ -141,5 +146,9 @@ struct common_fsm : public msm::front::state_machine_def<common_fsm>
         std::cout << "no transition from state " << state << " on event " << typeid(e).name() << std::endl;
     }
     static void pstate(common_fsm_backend const& p);
+
+private:
+    
+    Audio_Manager audio_manager; 
 };
 

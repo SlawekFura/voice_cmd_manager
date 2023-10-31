@@ -2,28 +2,25 @@
 
 #include "major_fsm.h"
 
+#include "audio_mgr.h"
+
 event::~event(){}
-
-// front-end: define the FSM structure
-// template <class Event, class FSM>
-// void common_fsm::on_entry(Event const&, FSM&)
-// {
-//     std::cout << "entering: common_fsm" << std::endl;
-// }
-
-// template <class Event,class FSM>
-// void common_fsm::on_exit(Event const&, FSM&)
-// {
-//     std::cout << "leaving: common_fsm" << std::endl;
-// }
 
 // The list of FSM states
 // the initial state of the player SM. Must be defined
 
 // transition actions
-void common_fsm::play_music(start_music const&) { std::cout << "common_fsm::start_playback" << std::endl; }
+void common_fsm::play_music(start_music const&)
+{
+    audio_manager.play_music_file();
+    std::cout << "common_fsm::play_music" << std::endl;
+}
 void common_fsm::say_greetings(greetings const&) { std::cout << "common_fsm::say_greetings" << std::endl; }
-void common_fsm::stop_music(stop const&) { std::cout << "common_fsm::stop_music" << std::endl; }
+void common_fsm::stop_music(stop const&)
+{
+    audio_manager.stop_music_file();
+    std::cout << "common_fsm::stop_music" << std::endl;
+}
 void common_fsm::say_goodbye(goodbye const&) { std::cout << "common_fsm::say_goodbye" << std::endl; }
 
 
@@ -35,7 +32,8 @@ void common_fsm::say_goodbye(goodbye const&) { std::cout << "common_fsm::say_goo
 //
 // Testing utilities.
 //
-static char const* const state_names[] = { "Start", "Playing_music", "Greeting", "Farewell" };
+// print state - first "Start" column in transition table, then "Next" column
+static char const* const state_names[] = { "Start", "Farewell", "Playing_music", "Greeting"};
 void common_fsm::pstate(common_fsm_backend const& p)
 {
     std::cout << " -> " << state_names[p.current_state()[0]] << std::endl;
