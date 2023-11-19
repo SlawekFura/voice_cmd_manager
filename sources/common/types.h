@@ -30,6 +30,7 @@ static Event_map event_mapping_init()
   local_map["pozegnanie"] = std::make_unique<EvtType>(goodbye{});
   local_map["stop"] = std::make_unique<EvtType>(stop{});
   local_map["muzyka"] = std::make_unique<EvtType>(start_music{});
+  local_map["nastepna"] = std::make_unique<EvtType>(next_track{});
 
   return local_map;
 }

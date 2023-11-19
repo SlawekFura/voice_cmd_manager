@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <iostream>
 #include <unistd.h>
+#include <queue>
+#include <mutex>
 
 #include "major_fsm.h"
 #include "types.h"
@@ -29,6 +31,9 @@ void sigint_handler(int) {
 
 Audio_Manager::UserCbkData Audio_Manager::user_data = {};
 
+std::mutex internal_msgs_mutex;
+std::queue<std::string> internal_msgs;
+
 int main(int argc, char** argv)
 {
     // TODO: add syslogging
@@ -48,18 +53,24 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    std::cout << "main 1" << std::endl;
-    // Audio_Manager audio_manager;
-    std::cout << "main 2" << std::endl;
-
-    //while(1){}
 	common_fsm_backend main_fsm;
     main_fsm.start();
 	while (true)
     {
+        std::string content;
         if (fetch_dbus_msg() == 0)
         {
-            std::string content(extract_string_from_last_msg());
+            content = extract_string_from_last_msg();
+        }
+        else if (not internal_msgs.empty())
+        {
+            content = internal_msgs.front();
+            internal_msgs.pop();
+        }
+        if (not content.empty())
+        {
+            std::cout << "[MAIN] content: " << content << std::endl;
+
             const std::unique_ptr<EvtType>& intent_event = dispatch_intent(content);
             if (intent_event != intent_event_map["invalid"])
             {

@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 #include <experimental/filesystem>
+#include <queue>
+#include <mutex>
 
 #include <sndfile.hh>
 
@@ -16,22 +18,25 @@
 
 #include "audio_mgr.h"
 
+extern std::queue<std::string> internal_msgs;
+extern std::mutex internal_msgs_mutex;
+
 Audio_Manager::Audio_Manager()
 {
-    std::cout << "Audio_Manager" << std::endl;
+    std::cout << "[AUDIO_MGR] Audio_Manager" << std::endl;
     this->stream = nullptr;
-    init_audio_mgr();
+    init_portaudio();
 
-    load_music_playlist("/home/pi/projects/speech_to_text/my_resources/music/wav_16k");
+    load_music_playlist("/home/pi/projects/speech_to_text/my_resources/music/wav_16k", Track_type::WAV_16);
+    load_music_playlist("/home/pi/projects/speech_to_text/my_resources/music/wav_48k", Track_type::WAV_48);
     Audio_Manager::user_data.load_next_track = [this]()
-    {
-        this->music_play_idx = (this->music_play_idx < playlist.size()) ? this->music_play_idx : 0;
-        this->load_to_stream(playlist[music_play_idx++]);
+    {        
+        internal_msgs.push("nastepna");
     };
-
+    user_data.audio_mgr = this;
 }
 
-void Audio_Manager::load_music_playlist(const std::string music_location)
+void Audio_Manager::load_music_playlist(const std::string music_location, Track_type type)
 {
     namespace fs = std::experimental::filesystem;
 
@@ -41,20 +46,19 @@ void Audio_Manager::load_music_playlist(const std::string music_location)
     size_t playlist_size = std::distance(directory_iterator(music_location), directory_iterator{});
 
     playlist.reserve(playlist_size);
-    int idx = 0;
     for (const auto& dir_entry : directory_iterator(music_location))
     {
+        //only wav file supported so far
         if (fs::is_regular_file(dir_entry.status()) and is_wav(std::string(dir_entry.path())))
         {
-            playlist.emplace_back(dir_entry.path());
-            std::cout << "Load: " << playlist[idx++] << std::endl;
+            playlist.push_back({dir_entry.path(), type});
+            std::cout << "[AUDIO_MGR] Load: " << playlist.back().track_name << std::endl;
         }
     }
 
-    playlist.erase(playlist.begin()+1);
     if (playlist.empty())
     {
-        std::cout << "No audio resources, exitting!" << std::endl;
+        std::cout << "[AUDIO_MGR] No audio resources, exitting!" << std::endl;
         exit(-3);
     }
 }
@@ -70,12 +74,12 @@ bool Audio_Manager::is_wav(std::string path)
     return false;
 }
 
-void Audio_Manager::init_audio_mgr()
+void Audio_Manager::init_portaudio()
 {
     PaError error = Pa_Initialize();
     if(error != paNoError)
     {
-        std::cout << "Portaudio not initialized properly!" << std::endl;
+        std::cout << "[AUDIO_MGR] Portaudio not initialized properly!" << std::endl;
         exit(-1);
     }
 }
@@ -94,17 +98,21 @@ int streamCallback(const void *inputBuffer, void *outputBuffer,
 
     /* stream out contents of data->buffer looping at end */
 
-    for(unsigned long i = 0; i < framesPerBuffer; i++ )
+    for (unsigned long i = 0; i < framesPerBuffer; i++)
     {
-        for(unsigned long j = 0; j < data->channel_count; ++j ){
+        for (unsigned long j = 0; j < data->channel_count; ++j)
+        {
             *out++ = data->buffer[data->playbackIndex++];
 
-            if( data->playbackIndex >= data->bufferSampleCount )
+            if (data->playbackIndex >= data->bufferSampleCount)
             {
-                data->load_next_track();
                 data->playbackIndex = 0;
-            }
+                std::cout << "[AUDIO_MGR] streamCallback paContinue" << std::endl;
 
+                std::lock_guard<std::mutex> lock(internal_msgs_mutex);
+                internal_msgs.push("nastepna");
+                return paContinue;
+            }
         }
     }
 
@@ -117,7 +125,7 @@ void Audio_Manager::play_music_file()
     play_sound_file(playlist[music_play_idx++]);
 }
 
-bool Audio_Manager::load_to_stream(const std::string soundFile)
+bool Audio_Manager::load_track(const std::string soundFile)
 {
     PaError error;
     /* Open an audio I/O stream. */
@@ -127,18 +135,17 @@ bool Audio_Manager::load_to_stream(const std::string soundFile)
     
     using boost::format;
     using boost::io::group;
-    std::cout << "[AUDIO_MGR] load_to_stream: " << soundFile << std::endl;
+    std::cout << "[AUDIO_MGR] load_track: " << soundFile << std::endl;
     if (soundFile.empty())
     {
-        std::cout << "soundFile empty!" << std::endl;
+        std::cout << "[AUDIO_MGR] soundFile empty!" << std::endl;
         errno = EINVAL;
         return false;
     }
-    std::cout << __LINE__ << std::endl;
     boost::filesystem::path soundFilePath(soundFile);
     if (! boost::filesystem::exists(soundFilePath))
     {
-        std::cout << "soundFilePath not exists!" << std::endl;
+        std::cout << "[AUDIO_MGR] soundFilePath not exists!" << std::endl;
         errno = EINVAL;
         return false;
     }
@@ -148,7 +155,7 @@ bool Audio_Manager::load_to_stream(const std::string soundFile)
     sndFile = sf_open(soundFile.c_str(), SFM_READ, &sfInfo);
     if (! sndFile)
     {
-        std::cout << "sndFile not exists!" << std::endl;
+        std::cout << "[AUDIO_MGR] sndFile not exists!" << std::endl;
         Pa_Terminate();
         return false;
     }
@@ -160,20 +167,31 @@ bool Audio_Manager::load_to_stream(const std::string soundFile)
         return false;
     }
 
-    std::cout << "bufferSampleCount: " << Audio_Manager::user_data.bufferSampleCount << std::endl;
-    // int subFormat = sfInfo.format & SF_FORMAT_SUBMASK;
+    std::cout << "[AUDIO_MGR] bufferSampleCount: " << Audio_Manager::user_data.bufferSampleCount << std::endl;
 
     Audio_Manager::user_data.channel_count = sfInfo.channels;
     sf_read_float(sndFile, Audio_Manager::user_data.buffer,  sfInfo.channels * sfInfo.frames);
 }
 
-bool Audio_Manager::play_sound_file(const std::string soundFile)
+bool Audio_Manager::play_sound_file(const Track& track)
 {
-    uint16_t SAMPLE_RATE = 16000;
+    uint16_t SAMPLE_RATE;
+    switch(track.track_kind)
+    {
+        case Track_type::WAV_16:
+            SAMPLE_RATE = 16000;
+            break;
+        case Track_type::WAV_48:
+            SAMPLE_RATE = 48000;
+            break;
+        default:
+            std::cout << "[AUDIO_MGR] unknown track type!" << std::endl;  
+            return false;
+    }
     unsigned long FRAMES_PER_BUFFER = 256;
-
+    std::cout << "[AUDIO_MGR] SAMPLE_RATE: " << SAMPLE_RATE << std::endl;  
+    load_track(track.track_name);
     PaError error;
-    load_to_stream(soundFile);
     error = Pa_OpenDefaultStream(&stream,
                                  0,          /* no input channels */
                                  1,          /* stereo output */
@@ -193,13 +211,13 @@ bool Audio_Manager::play_sound_file(const std::string soundFile)
 
     if( error != paNoError )
     {
-        std::cout << "Portaudio could not open a stream!" << std::endl;
+        std::cout << "[AUDIO_MGR] Portaudio could not open a stream!" << std::endl;
         exit(-1);
     }
 
     if (!stream)
     {
-        std::cout << "stream null!" << std::endl;
+        std::cout << "[AUDIO_MGR] stream null!" << std::endl;
         Pa_Terminate();
         return false;
     }
@@ -207,7 +225,7 @@ bool Audio_Manager::play_sound_file(const std::string soundFile)
     error = Pa_StartStream(stream);
     if (error != paNoError)
     {
-        std::cout << "start stream error: "<< error << std::endl;
+        std::cout << "[AUDIO_MGR] start stream error: "<< error << std::endl;
         Pa_Terminate();
         return false;
     }
@@ -217,11 +235,16 @@ bool Audio_Manager::play_sound_file(const std::string soundFile)
 
 void Audio_Manager::stop_music_file()
 {
-    PaError paError = Pa_AbortStream(stream);
-    Audio_Manager::user_data.playbackIndex = 0;
+    PaError paError = Pa_CloseStream(stream);
+    stream = nullptr;
     if (paError != paNoError)
     {
+        std::cout << "[AUDIO_MGR] Pa_StopStream error: "<< paError << std::endl;
         Pa_Terminate();
     }
+}
+
+void Audio_Manager::reset_track_queue()
+{
     music_play_idx = 0;
 }

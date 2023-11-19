@@ -12,14 +12,21 @@ event::~event(){}
 // transition actions
 void common_fsm::play_music(start_music const&)
 {
+    std::cout << "common_fsm::play_music - start_music" << std::endl;
     audio_manager.play_music_file();
-    std::cout << "common_fsm::play_music" << std::endl;
+}
+void common_fsm::play_next_track(next_track const&)
+{
+    std::cout << "common_fsm::play_music - next_track" << std::endl;
+    audio_manager.stop_music_file();
+    audio_manager.play_music_file();
 }
 void common_fsm::say_greetings(greetings const&) { std::cout << "common_fsm::say_greetings" << std::endl; }
 void common_fsm::stop_music(stop const&)
 {
-    audio_manager.stop_music_file();
     std::cout << "common_fsm::stop_music" << std::endl;
+    audio_manager.reset_track_queue();
+    audio_manager.stop_music_file();
 }
 void common_fsm::say_goodbye(goodbye const&) { std::cout << "common_fsm::say_goodbye" << std::endl; }
 

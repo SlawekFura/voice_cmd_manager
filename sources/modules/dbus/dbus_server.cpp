@@ -88,7 +88,7 @@ int fetch_dbus_msg()
     return -1;
 }
 
-std::string&& extract_string_from_last_msg()
+std::string extract_string_from_last_msg()
 {
 	DBusMessageIter args;
     char* sigvalue;
